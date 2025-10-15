@@ -1,15 +1,32 @@
 # 🤝 2match
 
-Aplicación web para conectar personas con intereses similares en eventos. Validación de startup siguiendo los principios de The Mom Test.
+Aplicación web inteligente para conectar personas en eventos mediante matching contextual. Sistema completo con 200+ tags organizados, buscador en tiempo real y algoritmos de matching avanzados.
 
-## 🚀 Características
+## 🚀 Características Principales
 
-- **Formulario de registro** con información de contacto (email/teléfono)
-- **Captura de intereses** específicos de cada participante
-- **Biografía personal** para conocer mejor a cada persona
-- **Preferencias de conexión** para matching efectivo
-- **Backend con Supabase** para almacenamiento de datos
-- **Diseño moderno y responsive** con gradientes atractivos
+### 🎯 Sistema de Matching Inteligente
+- **3 modos de conexión**: Affinity (intereses similares), Specific (busco/ofrezco), Explore (serendipia)
+- **Algoritmos contextuales** que adaptan el matching según el modo elegido
+- **Scoring dinámico** basado en complementariedad y afinidad
+
+### 🏷️ Sistema de Tags Avanzado
+- **200+ tags organizados** en 6 categorías (Tecnología, Negocios, Marketing, Producto, Ventas, Otros)
+- **Buscador en tiempo real** con filtrado mientras escribes
+- **Filtros por categoría** para navegación rápida
+- **Área scrollable** con altura máxima y scrollbar personalizado
+
+### 💪 Campos Profesionales
+- **Skills**: Qué se te da bien (60+ opciones en 5 categorías)
+- **Nivel de compromiso**: Slider 1-10 con descripciones dinámicas
+- **Disponibilidad**: 12 opciones (tiempo completo, tardes, remoto, etc.)
+- **Proyecto actual**: Checkbox + descripción opcional
+- **Separación busco/ofrezco**: Inputs completamente independientes
+
+### 🎨 UX/UI Moderna
+- **Diseño responsive** para móvil y desktop
+- **Colores diferenciados** por tipo de tag
+- **Animaciones suaves** y feedback visual
+- **Contador de selección** en tiempo real
 
 ## 📋 Requisitos Previos
 
@@ -25,35 +42,29 @@ Aplicación web para conectar personas con intereses similares en eventos. Valid
 2. Crea un nuevo proyecto
 3. Guarda tu **URL** y **anon key** del proyecto
 
-### 2. Crear la tabla en Supabase
+### 2. Ejecutar scripts SQL en Supabase
 
-En el SQL Editor de Supabase, ejecuta este código:
+En el SQL Editor de Supabase, ejecuta estos archivos **en orden**:
 
-```sql
-CREATE TABLE participants (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  contact TEXT NOT NULL,
-  contact_type TEXT NOT NULL CHECK (contact_type IN ('email', 'phone')),
-  interests TEXT NOT NULL,
-  looking_for_similar BOOLEAN DEFAULT true,
-  bio TEXT NOT NULL,
-  characteristics TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- Habilitar Row Level Security
-ALTER TABLE participants ENABLE ROW LEVEL SECURITY;
-
--- Política para permitir inserciones públicas (para el formulario)
-CREATE POLICY "Allow public inserts" ON participants
-  FOR INSERT
-  WITH CHECK (true);
-
--- Política para permitir lecturas autenticadas (para administradores)
-CREATE POLICY "Allow authenticated reads" ON participants
-  FOR SELECT
-  USING (auth.role() = 'authenticated');
+#### **Paso 1: Estructura de Base de Datos**
+```bash
+# Ejecuta: supabase-clean-migration.sql
 ```
+Crea todas las tablas, campos, índices y RLS básico.
+
+#### **Paso 2: Funciones de Matching**
+```bash
+# Ejecuta: supabase-functions.sql
+```
+Crea las 6 funciones de matching contextual.
+
+#### **Paso 3: Políticas de Seguridad**
+```bash
+# Ejecuta: supabase-fix-policies.sql
+```
+Configura las políticas RLS para permitir upsert.
+
+Ver documentación completa en: `INSTRUCCIONES-SUPABASE.md`
 
 ### 3. Configurar variables de entorno
 
@@ -82,39 +93,50 @@ La aplicación estará disponible en `http://localhost:5173`
 
 ## 🌐 Deployment en GitHub Pages
 
-### 1. Preparar el repositorio
+### Configuración Automática con GitHub Actions
 
-```bash
-# Inicializar git (si no está inicializado)
-git init
+El proyecto incluye un workflow de GitHub Actions que despliega automáticamente a GitHub Pages en cada push a `main`.
 
-# Añadir todos los archivos
-git add .
-
-# Hacer commit
-git commit -m "Initial commit - 2match app"
-
-# Crear repositorio en GitHub y conectarlo
-git remote add origin https://github.com/TU_USUARIO/2match-app.git
-git branch -M main
-git push -u origin main
-```
-
-### 2. Configurar GitHub Pages
+### 1. Habilitar GitHub Pages
 
 1. Ve a tu repositorio en GitHub
-2. Settings → Pages
-3. Source: selecciona "Deploy from a branch"
-4. Branch: selecciona `gh-pages` y `/root`
-5. Guarda los cambios
+2. **Settings** → **Pages**
+3. **Source**: Selecciona "GitHub Actions"
+4. Guarda los cambios
 
-### 3. Desplegar
+### 2. Push al repositorio
 
 ```bash
-npm run deploy
+git add .
+git commit -m "Deploy to GitHub Pages"
+git push origin main
 ```
 
-Tu aplicación estará disponible en: `https://TU_USUARIO.github.io/2match-app/`
+### 3. Verificar el deployment
+
+1. Ve a la pestaña **Actions** en tu repositorio
+2. Verás el workflow "Deploy to GitHub Pages" ejecutándose
+3. Cuando termine (✅), tu app estará en: `https://nachoglezmur.github.io/2match/`
+
+### 4. Configurar variables de entorno en producción
+
+⚠️ **IMPORTANTE**: Las variables de entorno (`.env`) no se suben a GitHub por seguridad.
+
+Para que funcione en producción, las credenciales de Supabase están **hardcodeadas** en el código o debes usar GitHub Secrets:
+
+**Opción A: Hardcodear (solo para demos)**
+```javascript
+// En src/supabaseClient.js
+const supabaseUrl = 'https://xdrlsucphzxgazngsnqg.supabase.co'
+const supabaseKey = 'tu_anon_key_aqui'
+```
+
+**Opción B: GitHub Secrets (recomendado)**
+1. Settings → Secrets and variables → Actions
+2. New repository secret:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. Actualiza `.github/workflows/deploy.yml` para usar los secrets
 
 ## 📊 Ver los Datos Recopilados
 
