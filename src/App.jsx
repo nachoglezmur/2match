@@ -1,32 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import './App.css'
 
+// Constantes
+const EVENT_ID = '00000000-0000-0000-0000-000000000001' // ID del evento de ejemplo
+
 function App() {
-  const [activeTab, setActiveTab] = useState('register')
-  const [formData, setFormData] = useState({
-    contact: '',
-    contactType: 'email',
-    interests: '',
-    lookingForSimilar: true,
-    bio: '',
-    characteristics: ''
-  })
-  const [validationData, setValidationData] = useState({
-    name: '',
-    email: '',
-    attendedEvent: '',
-    usedService: '',
-    wouldPay: '',
-    maxPrice: '',
-    mainProblem: '',
-    currentSolution: '',
-    feedback: ''
-  })
-  const [submitted, setSubmitted] = useState(false)
-  const [validationSubmitted, setValidationSubmitted] = useState(false)
+  // Estados principales
+  const [currentScreen, setCurrentScreen] = useState('welcome') // welcome, modeSelection, profileSetup, feed, profileDetail
+  const [currentUser, setCurrentUser] = useState(null)
+  const [currentProfile, setCurrentProfile] = useState(null)
+  const [selectedMode, setSelectedMode] = useState(null) // affinity, specific, explore
+  const [matches, setMatches] = useState([])
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [selectedMatch, setSelectedMatch] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // Estados del formulario
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    interests: [],
+    personalityTraits: [],
+    seeking: [],
+    offering: [],
+    broadTags: [],
+    conversationDepth: 5
+  })
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
