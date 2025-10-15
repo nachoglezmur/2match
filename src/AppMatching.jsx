@@ -5,6 +5,7 @@ import ModeSelection from './components/ModeSelection'
 import ProfileSetup from './components/ProfileSetup'
 import MatchesFeed from './components/MatchesFeed'
 import ProfileDetail from './components/ProfileDetail'
+import ChatWindow from './components/ChatWindow'
 import './AppMatching.css'
 
 const EVENT_ID = '00000000-0000-0000-0000-000000000001'
@@ -17,6 +18,7 @@ function AppMatching() {
   const [matches, setMatches] = useState([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [selectedMatch, setSelectedMatch] = useState(null)
+  const [chatMatch, setChatMatch] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -155,16 +157,17 @@ function AppMatching() {
 
       if (interactionError) throw interactionError
 
-      // Mostrar mensaje de éxito si conectó
+      // Si conectó, abrir chat
       if (action === 'connected') {
-        alert(`¡Conectado con ${currentMatch.user_name}! 🎉`)
-      }
-
-      // Avanzar al siguiente match
-      if (currentMatchIndex < matches.length - 1) {
-        setCurrentMatchIndex(currentMatchIndex + 1)
+        setChatMatch(currentMatch)
+        setCurrentScreen('chat')
       } else {
-        setMatches([])
+        // Avanzar al siguiente match para otras acciones
+        if (currentMatchIndex < matches.length - 1) {
+          setCurrentMatchIndex(currentMatchIndex + 1)
+        } else {
+          setMatches([])
+        }
       }
     } catch (err) {
       console.error('Error recording action:', err)
@@ -179,6 +182,22 @@ function AppMatching() {
   const handleBackFromDetail = () => {
     setSelectedMatch(null)
     setCurrentScreen('feed')
+  }
+
+  const handleBackFromChat = () => {
+    setChatMatch(null)
+    setCurrentScreen('feed')
+    // Avanzar al siguiente match
+    if (currentMatchIndex < matches.length - 1) {
+      setCurrentMatchIndex(currentMatchIndex + 1)
+    } else {
+      setMatches([])
+    }
+  }
+
+  const handleViewProfileFromChat = (match) => {
+    setSelectedMatch(match)
+    setCurrentScreen('profileDetail')
   }
 
   const handleBackFromSetup = () => {
@@ -234,6 +253,15 @@ function AppMatching() {
             handleMatchAction(action)
             handleBackFromDetail()
           }}
+        />
+      )}
+
+      {currentScreen === 'chat' && chatMatch && (
+        <ChatWindow
+          match={chatMatch}
+          currentUser={{ ...currentUser, profile_id: currentProfile.id }}
+          onClose={handleBackFromChat}
+          onViewProfile={handleViewProfileFromChat}
         />
       )}
     </div>
