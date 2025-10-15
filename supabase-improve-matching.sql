@@ -8,15 +8,17 @@ CREATE OR REPLACE FUNCTION get_tag_category(tag TEXT)
 RETURNS TEXT AS $$
 BEGIN
   -- Tecnología
-  IF tag IN ('IA', 'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision',
+  IF tag ILIKE '%desarrollador%' OR tag ILIKE '%developer%' OR tag ILIKE '%programación%' OR
+     tag ILIKE '%frontend%' OR tag ILIKE '%backend%' OR tag ILIKE '%fullstack%' OR tag ILIKE '%full stack%' OR
+     tag IN ('IA', 'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision',
              'Blockchain', 'Web3', 'Smart Contracts', 'DeFi', 'NFT',
              'Cloud', 'AWS', 'Azure', 'GCP', 'DevOps', 'CI/CD',
              'React', 'Vue', 'Angular', 'Node.js', 'Python', 'JavaScript',
              'Mobile', 'iOS', 'Android', 'React Native', 'Flutter',
              'Data Science', 'Big Data', 'Analytics', 'Data Analytics', 'Marketing Analytics', 'Web Analytics',
              'Ciberseguridad', 'Seguridad', 'IoT', 'Edge Computing',
-             'Programación', 'Desarrollo Frontend', 'Desarrollo Backend', 'Full Stack',
-             'Mobile Development', 'Bases de datos', 'Testing', 'QA', 'Arquitectura') THEN
+             'Mobile Development', 'Bases de datos', 'Testing', 'QA', 'Arquitectura',
+             'CTO', 'Cofundador técnico (CTO)', 'Equipo técnico', 'Developers', 'Designers') THEN
     RETURN 'Tecnología';
   
   -- Negocios
@@ -31,13 +33,13 @@ BEGIN
     RETURN 'Negocios';
   
   -- Marketing
-  ELSIF tag IN ('Marketing Digital', 'Growth Hacking', 'SEO', 'SEM', 'Content Marketing',
-                'Social Media', 'Community Management', 'Influencer Marketing',
+  ELSIF tag ILIKE '%marketing%' OR tag ILIKE '%seo%' OR tag ILIKE '%sem%' OR
+        tag IN ('Growth Hacking', 'Social Media', 'Community Management', 'Influencer Marketing',
                 'Email Marketing', 'Marketing Automation', 'CRM Marketing', 'CRM Ventas', 'Lead Generation',
                 'Conversion Rate Optimization', 'A/B Testing',
                 'Branding', 'Branding Design', 'Copywriting', 'Storytelling', 'PR', 'Comunicación',
                 'Performance Marketing', 'Paid Ads', 'Facebook Ads', 'Google Ads',
-                'Content', 'Growth', 'Community') THEN
+                'Content', 'Growth', 'Community', 'Marketer', 'Marketers') THEN
     RETURN 'Marketing';
   
   -- Producto/Diseño
@@ -175,7 +177,9 @@ RETURNS TABLE (score FLOAT, reason JSONB) AS $$
 DECLARE
   p1_seeks_p2_offers INT := 0;
   p2_seeks_p1_offers INT := 0;
-  category_matches INT := 0;
+  category_matches_1to2 INT := 0;
+  category_matches_2to1 INT := 0;
+  total_category_matches INT := 0;
   complementary_matches INT := 0;
   total_score FLOAT := 0;
   explanation JSONB;
@@ -192,14 +196,14 @@ BEGIN
     FROM jsonb_array_elements_text(p1_seeking) AS s1
     INNER JOIN jsonb_array_elements_text(p2_offering) AS o2 ON s1 = o2;
     
-    -- Matching por categorías
+    -- Matching por categorías (p1 busca -> p2 ofrece)
     SELECT ARRAY_AGG(DISTINCT get_tag_category(value::TEXT)) INTO p1_seek_categories
     FROM jsonb_array_elements_text(p1_seeking);
     
     SELECT ARRAY_AGG(DISTINCT get_tag_category(value::TEXT)) INTO p2_offer_categories
     FROM jsonb_array_elements_text(p2_offering);
     
-    SELECT COUNT(*) INTO category_matches
+    SELECT COUNT(*) INTO category_matches_1to2
     FROM unnest(p1_seek_categories) AS c1
     INNER JOIN unnest(p2_offer_categories) AS c2 ON c1 = c2;
   END IF;
@@ -210,18 +214,31 @@ BEGIN
     SELECT COUNT(*) INTO p2_seeks_p1_offers
     FROM jsonb_array_elements_text(p2_seeking) AS s2
     INNER JOIN jsonb_array_elements_text(p1_offering) AS o1 ON s2 = o1;
+    
+    -- Matching por categorías (p2 busca -> p1 ofrece)
+    SELECT ARRAY_AGG(DISTINCT get_tag_category(value::TEXT)) INTO p2_seek_categories
+    FROM jsonb_array_elements_text(p2_seeking);
+    
+    SELECT ARRAY_AGG(DISTINCT get_tag_category(value::TEXT)) INTO p1_offer_categories
+    FROM jsonb_array_elements_text(p1_offering);
+    
+    SELECT COUNT(*) INTO category_matches_2to1
+    FROM unnest(p2_seek_categories) AS c1
+    INNER JOIN unnest(p1_offer_categories) AS c2 ON c1 = c2;
   END IF;
   
   complementary_matches := p1_seeks_p2_offers + p2_seeks_p1_offers;
+  total_category_matches := category_matches_1to2 + category_matches_2to1;
   
-  -- Puntuación base por matches exactos (60%)
-  total_score := LEAST(complementary_matches * 30, 60);
+  -- Puntuación base por matches exactos (50%)
+  total_score := LEAST(complementary_matches * 25, 50);
   
-  -- Bonus por categorías comunes (40%)
-  total_score := total_score + LEAST(category_matches * 20, 40);
+  -- Bonus por categorías comunes (50%)
+  total_score := total_score + LEAST(total_category_matches * 25, 50);
   
   -- Bonus si es bidireccional (x1.3)
-  is_bidirectional := (p1_seeks_p2_offers > 0 AND p2_seeks_p1_offers > 0);
+  is_bidirectional := ((p1_seeks_p2_offers > 0 OR category_matches_1to2 > 0) AND 
+                       (p2_seeks_p1_offers > 0 OR category_matches_2to1 > 0));
   IF is_bidirectional THEN
     total_score := LEAST(total_score * 1.3, 100);
   END IF;
@@ -229,7 +246,8 @@ BEGIN
   explanation := jsonb_build_object(
     'you_seek_they_offer', p1_seeks_p2_offers,
     'they_seek_you_offer', p2_seeks_p1_offers,
-    'category_matches', category_matches,
+    'category_matches_1to2', category_matches_1to2,
+    'category_matches_2to1', category_matches_2to1,
     'bidirectional', is_bidirectional
   );
   
