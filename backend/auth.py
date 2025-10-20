@@ -76,6 +76,10 @@ def init_app(app):
         else:
             return {'logged_in': False}
 
+    @app.route('/api/auth/health')
+    def auth_health():
+        return {'status': 'ok'}
+
     @app.before_request
     def load_logged_in_user():
         user_id = session.get('user_id')
