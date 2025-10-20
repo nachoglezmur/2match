@@ -18,6 +18,7 @@ from .schemas import (
 )
 from .services.matching import find_best_matches
 from .utils.text import fuzzy_match, generate_tag_variants
+from .auth import login_required
 
 api_bp = Blueprint("api", __name__)
 
@@ -103,23 +104,16 @@ def match_candidate_to_response(candidate) -> Dict[str, Any]:
 
 
 @api_bp.route("/participants", methods=["POST"])
+@login_required
 def upsert_participant() -> Any:
     payload = ParticipantCreate(**request.get_json(force=True))
     ensure_event(payload.event_id)
-
-    participant = None
-    body = request.get_json(force=True)
-    participant_id = parse_uuid(body.get("id")) if body else None
     event_uuid = parse_uuid(payload.event_id)
 
-    if participant_id:
-        participant = Participant.query.filter_by(id=participant_id, event_id=event_uuid).first()
-
-    if participant is None and payload.email:
-        participant = Participant.query.filter_by(event_id=event_uuid, email=payload.email).first()
+    participant = Participant.query.filter_by(user_id=g.user.id, event_id=event_uuid).first()
 
     if participant is None:
-        participant = Participant(event_id=event_uuid)
+        participant = Participant(event_id=event_uuid, user_id=g.user.id)
         db.session.add(participant)
 
     participant.full_name = payload.full_name
@@ -139,22 +133,24 @@ def upsert_participant() -> Any:
     return jsonify(participant_to_response(participant)), HTTPStatus.CREATED
 
 
-@api_bp.route("/participants/<participant_id>/matches", methods=["GET"])
-def get_matches(participant_id: str) -> Any:
-    participant = Participant.query.filter_by(id=parse_uuid(participant_id)).first_or_404()
+@api_bp.route("/me/matches", methods=["GET"])
+@login_required
+def get_matches() -> Any:
+    event_uuid = parse_uuid('00000000-0000-0000-0000-000000000001') # Assuming a single event for now
+    participant = Participant.query.filter_by(user_id=g.user.id, event_id=event_uuid).first_or_404()
     candidates = find_best_matches(db.session, participant)
     response = [match_candidate_to_response(candidate) for candidate in candidates]
     return jsonify(response)
 
 
 @api_bp.route("/matches/decision", methods=["POST"])
+@login_required
 def record_match_decision() -> Any:
     payload = MatchDecisionPayload(**request.get_json(force=True))
     event_uuid = parse_uuid(payload.event_id)
-    initiator_id = parse_uuid(payload.initiator_id)
     target_id = parse_uuid(payload.target_id)
 
-    initiator = Participant.query.filter_by(id=initiator_id, event_id=event_uuid).first()
+    initiator = Participant.query.filter_by(user_id=g.user.id, event_id=event_uuid).first_or_404()
     target = Participant.query.filter_by(id=target_id, event_id=event_uuid).first()
 
     if initiator is None or target is None:
@@ -162,7 +158,7 @@ def record_match_decision() -> Any:
 
     action = MatchAction.query.filter_by(
         event_id=event_uuid,
-        initiator_id=initiator_id,
+        initiator_id=initiator.id,
         target_id=target_id,
     ).first()
 
@@ -202,9 +198,11 @@ def record_match_decision() -> Any:
     return jsonify(response_data)
 
 
-@api_bp.route("/participants/<participant_id>/confirmed", methods=["GET"])
-def get_confirmed_matches(participant_id: str) -> Any:
-    participant = Participant.query.filter_by(id=parse_uuid(participant_id)).first_or_404()
+@api_bp.route("/me/confirmed_matches", methods=["GET"])
+@login_required
+def get_confirmed_matches() -> Any:
+    event_uuid = parse_uuid('00000000-0000-0000-0000-000000000001') # Assuming a single event for now
+    participant = Participant.query.filter_by(user_id=g.user.id, event_id=event_uuid).first_or_404()
     actions = MatchAction.query.filter_by(
         initiator_id=participant.id,
         event_id=participant.event_id,
@@ -245,13 +243,15 @@ def get_confirmed_matches(participant_id: str) -> Any:
 
 
 @api_bp.route("/events/<event_id>/search", methods=["GET"])
+@login_required
 def search_participants(event_id: str) -> Any:
     ensure_event(event_id)
     event_uuid = parse_uuid(event_id)
     term = request.args.get("term", "").strip()
     normalized_term = term.lower()
-    exclude_id = request.args.get("exclude_id")
-    exclude_uuid = parse_uuid(exclude_id) if exclude_id else None
+    
+    exclude_participant = Participant.query.filter_by(user_id=g.user.id, event_id=event_uuid).first()
+    exclude_uuid = exclude_participant.id if exclude_participant else None
 
     results: List[Dict[str, Any]] = []
     for participant in Participant.query.filter_by(event_id=event_uuid).all():

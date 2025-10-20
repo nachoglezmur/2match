@@ -24,9 +24,9 @@ export const saveParticipant = async (participantData) => {
   }
 };
 
-export const getMatches = async (participantId) => {
+export const getMatches = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/participants/${participantId}/matches`);
+    const response = await fetch(`${API_BASE_URL}/me/matches`);
     
     if (!response.ok) {
       throw new Error('Error al obtener los matches');
@@ -39,7 +39,7 @@ export const getMatches = async (participantId) => {
   }
 };
 
-export const recordMatchDecision = async (initiatorId, targetId, action) => {
+export const recordMatchDecision = async (targetId, action) => {
   try {
     const response = await fetch(`${API_BASE_URL}/matches/decision`, {
       method: 'POST',
@@ -48,7 +48,6 @@ export const recordMatchDecision = async (initiatorId, targetId, action) => {
       },
       body: JSON.stringify({
         event_id: '00000000-0000-0000-0000-000000000001',
-        initiator_id: initiatorId,
         target_id: targetId,
         action: action,
       }),
@@ -65,9 +64,9 @@ export const recordMatchDecision = async (initiatorId, targetId, action) => {
   }
 };
 
-export const getConfirmedMatches = async (participantId) => {
+export const getConfirmedMatches = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/participants/${participantId}/confirmed`);
+    const response = await fetch(`${API_BASE_URL}/me/confirmed_matches`);
     
     if (!response.ok) {
       throw new Error('Error al obtener los matches confirmados');

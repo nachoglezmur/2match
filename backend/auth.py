@@ -1,9 +1,18 @@
-import os
+from functools import wraps
+from flask import g, abort, redirect, url_for, session, request
 from authlib.integrations.flask_client import OAuth
-from flask import g, session, flash, redirect, url_for, request
+import os
 
 from .app import db
 from .models import User
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if g.user is None:
+            abort(401)
+        return f(*args, **kwargs)
+    return decorated_function
 
 oauth = OAuth()
 

@@ -28,6 +28,25 @@ function AppMatching() {
   const [searchError, setSearchError] = useState('')
   const [searchPerformed, setSearchPerformed] = useState(false)
   const dismissedPeersRef = useRef(new Set())
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.logged_in) {
+            setUser(data.user_info);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const normalizeText = (value) => {
     return (value ?? '')
@@ -162,7 +181,7 @@ function AppMatching() {
       
       toast.success('¡Perfil guardado correctamente!')
       
-      await loadMatches(savedProfile.id)
+      await loadMatches()
       setCurrentScreen('feed')
     } catch (err) {
       console.error('Error saving profile:', err)
@@ -173,12 +192,12 @@ function AppMatching() {
     }
   }
 
-  const loadMatches = async (participantId) => {
+  const loadMatches = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const matchesData = await api.getMatches(participantId)
+      const matchesData = await api.getMatches()
 
       const filteredData = matchesData
         .filter(match => !dismissedPeersRef.current.has(match.peer_id))
@@ -186,7 +205,7 @@ function AppMatching() {
       setMatches(filteredData)
       setCurrentMatchIndex(0)
 
-      await loadConfirmedMatches(participantId)
+      await loadConfirmedMatches()
     } catch (err) {
       console.error('Error loading matches:', err)
       setError('Error al cargar los matches. Por favor, inténtalo de nuevo.')
@@ -195,9 +214,9 @@ function AppMatching() {
     }
   }
 
-  const loadConfirmedMatches = async (participantId) => {
+  const loadConfirmedMatches = async () => {
     try {
-      const data = await api.getConfirmedMatches(participantId)
+      const data = await api.getConfirmedMatches()
       setConfirmedMatches(data || [])
     } catch (err) {
       console.error('Error loading confirmed matches:', err)
@@ -230,7 +249,7 @@ function AppMatching() {
       setLoading(true)
       setError('')
 
-      const result = await api.recordMatchDecision(participant.id, match.peer_id, action)
+      const result = await api.recordMatchDecision(match.peer_id, action)
 
       if (result?.contact) {
         setContactInfo({ ...result.contact, isMutual: !!result.is_mutual })
@@ -241,7 +260,7 @@ function AppMatching() {
 
       dismissedPeersRef.current.add(match.peer_id)
 
-      await loadConfirmedMatches(participant.id)
+      await loadConfirmedMatches()
     } catch (err) {
       console.error('Error processing match decision:', err)
       setError('Error al procesar la decisión. Por favor, inténtalo de nuevo.')
@@ -345,6 +364,23 @@ function AppMatching() {
 
   return (
     <div className="app-container">
+      <header className="app-header">
+        <div className="logo-banner">
+          <img src={logo} alt="2Match" className="logo-image" />
+        </div>
+        <div className="user-info">
+          {user ? (
+            <>
+              <img src={user.picture} alt={user.name} className="user-picture" />
+              <span>{user.name}</span>
+              <a href="https://backend-7g2c.onrender.com/api/logout" className="btn-secondary">Logout</a>
+            </>
+          ) : (
+            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-primary">Login with Google</a>
+          )}
+        </div>
+      </header>
+
       <ToastContainer position="bottom-center" autoClose={3000} hideProgressBar theme="dark" />
       {loading && (
         <div className="loading-overlay">
@@ -360,178 +396,194 @@ function AppMatching() {
         </div>
       )}
 
-      {currentScreen === 'modeSelection' && (
+      {user ? (
+        <>
+          {currentScreen === 'modeSelection' && (
+            <div className="screen mode-selection-wrapper">
+              <div className="logo-banner">
+                <img src={logo} alt="2Match" className="logo-image" />
+                <p>Conecta con la persona adecuada en segundos.</p>
+              </div>
+              <ModeSelection onSelectMode={handleSelectMode} />
+            </div>
+          )}
+
+          {currentScreen === 'profileSetup' && (
+            <ProfileSetup 
+              mode={selectedMode}
+              onComplete={handleProfileComplete}
+              onBack={handleBackFromSetup}
+            />
+          )}
+
+          {currentScreen === 'feed' && (
+            <MatchesFeed
+              matches={matches}
+              currentIndex={currentMatchIndex}
+              onMatch={(match) => handleMatchDecision('match', match)}
+              onSkip={(match) => handleMatchDecision('skip', match)}
+              onViewProfile={handleViewProfile}
+              onOpenSearch={handleOpenSearch}
+              confirmedMatches={confirmedMatches}
+            />
+          )}
+
+          {currentScreen === 'search' && (
+            <div className="screen matches-feed-screen">
+              <button className="btn-back" onClick={handleBackFromSearch}>← Volver</button>
+
+              <div className="feed-header">
+                <h2>Buscar personas</h2>
+                <p className="match-counter">Encuentra perfiles por nombre, bio o intereses.</p>
+              </div>
+
+              <form onSubmit={handleSearch} className="form">
+                <div className="form-group">
+                  <label htmlFor="searchTerm">Término de búsqueda</label>
+                  <input
+                    id="searchTerm"
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Ej: marketing, diseñador, Laura"
+                    className="input"
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={searchLoading}>
+                  {searchLoading ? 'Buscando...' : 'Buscar'}
+                </button>
+              </form>
+
+              {searchError && (
+                <div className="error-message">
+                  <span className="error-icon">⚠️</span>
+                  {searchError}
+                </div>
+              )}
+
+              {!searchLoading && searchPerformed && searchResults.length === 0 && !searchError && (
+                <div className="no-matches">
+                  <div className="no-matches-icon">🔍</div>
+                  <h2>Sin resultados</h2>
+                  <p>No encontramos perfiles que coincidan con tu búsqueda.</p>
+                </div>
+              )}
+
+              <div className="match-list">
+                {searchResults.map(result => (
+                  <div key={result.peer_id} className="match-card search-result-card">
+                    <div className="match-card-header">
+                      <div className="match-avatar">
+                        <div className="avatar-placeholder">
+                          {result.peer_name?.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div className="match-info">
+                        <h3>{result.peer_name}</h3>
+                        {(result.peer_role || result.peer_company) && (
+                          <p className="match-company">{[result.peer_role, result.peer_company].filter(Boolean).join(' · ')}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="match-card-body">
+                      {(result.peer_bio || result.peer_goals) && (
+                        <div className="match-bio">
+                          {result.peer_bio && <p>{result.peer_bio}</p>}
+                          {result.peer_goals && (
+                            <p className="match-goals"><strong>Objetivo:</strong> {result.peer_goals}</p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="match-tags">
+                        {result.peer_interests && result.peer_interests.length > 0 && (
+                          <div className="tag-group">
+                            <h4>Intereses</h4>
+                            <div className="tags-list">
+                              {result.peer_interests.slice(0, 6).map((interest, idx) => (
+                                <span key={idx} className="tag">{interest}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {result.peer_needs && result.peer_needs.length > 0 && (
+                          <div className="tag-group">
+                            <h4>Busca</h4>
+                            <div className="tags-list">
+                              {result.peer_needs.slice(0, 6).map((need, idx) => (
+                                <span key={idx} className="tag tag-seeking">{need}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {result.peer_offers && result.peer_offers.length > 0 && (
+                          <div className="tag-group">
+                            <h4>Ofrece</h4>
+                            <div className="tags-list">
+                              {result.peer_offers.slice(0, 6).map((offer, idx) => (
+                                <span key={idx} className="tag tag-offering">{offer}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="search-result-actions">
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() => handleSelectSearchResult(result)}
+                      >
+                        Ver perfil
+                      </button>
+                      <button
+                        className="btn-primary"
+                        type="button"
+                        onClick={() => handleMatchDecision('match', result)}
+                        disabled={loading}
+                      >
+                        Hacer match
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentScreen === 'profileDetail' && (
+            <ProfileDetail
+              match={selectedMatch}
+              onBack={handleBackFromDetail}
+              onMatch={(match) => {
+                handleMatchDecision('match', match)
+                handleBackFromDetail()
+              }}
+              onSkip={(match) => {
+                handleMatchDecision('skip', match)
+                handleBackFromDetail()
+              }}
+            />
+          )}
+        </>
+      ) : (
         <div className="screen mode-selection-wrapper">
           <div className="logo-banner">
             <img src={logo} alt="2Match" className="logo-image" />
             <p>Conecta con la persona adecuada en segundos.</p>
           </div>
-          <ModeSelection onSelectMode={handleSelectMode} />
-        </div>
-      )}
-
-      {currentScreen === 'profileSetup' && (
-        <ProfileSetup 
-          mode={selectedMode}
-          onComplete={handleProfileComplete}
-          onBack={handleBackFromSetup}
-        />
-      )}
-
-      {currentScreen === 'feed' && (
-        <MatchesFeed
-          matches={matches}
-          currentIndex={currentMatchIndex}
-          onMatch={(match) => handleMatchDecision('match', match)}
-          onSkip={(match) => handleMatchDecision('skip', match)}
-          onViewProfile={handleViewProfile}
-          onOpenSearch={handleOpenSearch}
-          confirmedMatches={confirmedMatches}
-        />
-      )}
-
-      {currentScreen === 'search' && (
-        <div className="screen matches-feed-screen">
-          <button className="btn-back" onClick={handleBackFromSearch}>← Volver</button>
-
-          <div className="feed-header">
-            <h2>Buscar personas</h2>
-            <p className="match-counter">Encuentra perfiles por nombre, bio o intereses.</p>
-          </div>
-
-          <form onSubmit={handleSearch} className="form">
-            <div className="form-group">
-              <label htmlFor="searchTerm">Término de búsqueda</label>
-              <input
-                id="searchTerm"
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Ej: marketing, diseñador, Laura"
-                className="input"
-              />
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={searchLoading}>
-              {searchLoading ? 'Buscando...' : 'Buscar'}
-            </button>
-          </form>
-
-          {searchError && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              {searchError}
-            </div>
-          )}
-
-          {!searchLoading && searchPerformed && searchResults.length === 0 && !searchError && (
-            <div className="no-matches">
-              <div className="no-matches-icon">🔍</div>
-              <h2>Sin resultados</h2>
-              <p>No encontramos perfiles que coincidan con tu búsqueda.</p>
-            </div>
-          )}
-
-          <div className="match-list">
-            {searchResults.map(result => (
-              <div key={result.peer_id} className="match-card search-result-card">
-                <div className="match-card-header">
-                  <div className="match-avatar">
-                    <div className="avatar-placeholder">
-                      {result.peer_name?.charAt(0).toUpperCase()}
-                    </div>
-                  </div>
-
-                  <div className="match-info">
-                    <h3>{result.peer_name}</h3>
-                    {(result.peer_role || result.peer_company) && (
-                      <p className="match-company">{[result.peer_role, result.peer_company].filter(Boolean).join(' · ')}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="match-card-body">
-                  {(result.peer_bio || result.peer_goals) && (
-                    <div className="match-bio">
-                      {result.peer_bio && <p>{result.peer_bio}</p>}
-                      {result.peer_goals && (
-                        <p className="match-goals"><strong>Objetivo:</strong> {result.peer_goals}</p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="match-tags">
-                    {result.peer_interests && result.peer_interests.length > 0 && (
-                      <div className="tag-group">
-                        <h4>Intereses</h4>
-                        <div className="tags-list">
-                          {result.peer_interests.slice(0, 6).map((interest, idx) => (
-                            <span key={idx} className="tag">{interest}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {result.peer_needs && result.peer_needs.length > 0 && (
-                      <div className="tag-group">
-                        <h4>Busca</h4>
-                        <div className="tags-list">
-                          {result.peer_needs.slice(0, 6).map((need, idx) => (
-                            <span key={idx} className="tag tag-seeking">{need}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {result.peer_offers && result.peer_offers.length > 0 && (
-                      <div className="tag-group">
-                        <h4>Ofrece</h4>
-                        <div className="tags-list">
-                          {result.peer_offers.slice(0, 6).map((offer, idx) => (
-                            <span key={idx} className="tag tag-offering">{offer}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="search-result-actions">
-                  <button
-                    className="btn-secondary"
-                    type="button"
-                    onClick={() => handleSelectSearchResult(result)}
-                  >
-                    Ver perfil
-                  </button>
-                  <button
-                    className="btn-primary"
-                    type="button"
-                    onClick={() => handleMatchDecision('match', result)}
-                    disabled={loading}
-                  >
-                    Hacer match
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="welcome-message">
+            <h2>Bienvenido a 2Match</h2>
+            <p>Inicia sesión para empezar a conectar.</p>
+            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-primary">Login with Google</a>
           </div>
         </div>
-      )}
-
-      {currentScreen === 'profileDetail' && (
-        <ProfileDetail
-          match={selectedMatch}
-          onBack={handleBackFromDetail}
-          onMatch={(match) => {
-            handleMatchDecision('match', match)
-            handleBackFromDetail()
-          }}
-          onSkip={(match) => {
-            handleMatchDecision('skip', match)
-            handleBackFromDetail()
-          }}
-        />
       )}
 
       {contactInfo && (
