@@ -27,16 +27,7 @@ def create_app(config_name: str | None = None) -> Flask:
     db.init_app(app)
     
     # Configurar CORS
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": app.config.get('CORS_ORIGINS', ['*']),
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "expose_headers": ["Content-Type"],
-            "supports_credentials": True,
-            "max_age": 3600
-        }
-    })
+    CORS(app, origins=app.config.get('CORS_ORIGINS', '*'), supports_credentials=True)
 
     # Registrar blueprints
     from .routes import api_bp
