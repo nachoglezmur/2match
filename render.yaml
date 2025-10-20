@@ -15,4 +15,4 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         # This should be the URL of your deployed frontend on GitHub Pages.
-        value: "YOUR_GITHUB_PAGES_URL"
+        value: "https://nachoglezmur.github.io"
