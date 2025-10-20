@@ -44,8 +44,25 @@ class Event(BaseModel):
     )
 
 
+class User(BaseModel):
+    __tablename__ = "users"
+
+    google_id: Mapped[str] = mapped_column(db.String(255), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(db.String(255), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(db.String(255), nullable=False)
+    picture: Mapped[str | None] = mapped_column(db.String(255))
+
+    participants: Mapped[List["Participant"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
 class Participant(BaseModel):
     __tablename__ = "participants"
+
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), db.ForeignKey("users.id"))
+    user: Mapped["User" | None] = relationship(back_populates="participants")
 
     event_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), db.ForeignKey("events.id"))
     full_name: Mapped[str] = mapped_column(db.String(255), nullable=False)

@@ -25,6 +25,8 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Inicializar extensiones
     db.init_app(app)
+    from . import auth
+    auth.init_app(app)
     
     # Configurar CORS
     CORS(app, resources={
