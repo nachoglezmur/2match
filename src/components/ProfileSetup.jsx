@@ -1,25 +1,24 @@
 import { useState } from 'react'
+import Spinner from './Spinner'
 
 export default function ProfileSetup({ mode, onComplete, onBack }) {
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
+    company: '',
+    role: '',
     email: '',
+    phone: '',
+    sharePhone: true,
     bio: '',
+    goals: '',
     interests: [],
-    personalityTraits: [],
-    seeking: [],
-    offering: [],
-    broadTags: [],
-    skills: [],
-    currentProject: '',
-    hasActiveProject: false,
-    commitmentLevel: 5,
-    availability: [],
-    conversationDepth: 5
+    offers: [],
+    needs: []
   })
 
   const [searchTerm, setSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
+  const [loading, setLoading] = useState(false)
 
   const toggleTag = (field, tag) => {
     setFormData(prev => ({
@@ -32,7 +31,22 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onComplete(formData)
+    setLoading(true)
+    const sanitizeTags = (tags) => Array.from(new Set((tags || []).map(tag => tag.trim()).filter(Boolean)))
+
+    onComplete({
+      fullName: formData.fullName.trim(),
+      company: formData.company.trim(),
+      role: formData.role.trim(),
+      email: formData.email.trim().toLowerCase(),
+      phone: formData.phone.trim(),
+      sharePhone: formData.sharePhone,
+      bio: formData.bio.trim(),
+      goals: formData.goals.trim(),
+      interests: sanitizeTags(formData.interests),
+      offers: sanitizeTags(formData.offers),
+      needs: sanitizeTags(formData.needs)
+    }).finally(() => setLoading(false))
   }
 
   // CATEGORÍAS DE INTERESES CON MUCHOS MÁS TAGS
@@ -82,36 +96,6 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
       'Finanzas', 'Contabilidad', 'Fiscal', 'Tesorería',
       'Sostenibilidad', 'ESG', 'Impacto Social', 'Economía Circular',
       'Educación', 'Formación', 'Coaching', 'Mentoría'
-    ]
-  }
-
-  // SKILLS (QUÉ SE TE DA BIEN)
-  const skillsCategories = {
-    'Técnicas': [
-      'Programación', 'Desarrollo Frontend', 'Desarrollo Backend', 'Full Stack',
-      'Mobile Development', 'DevOps', 'Cloud', 'Bases de datos',
-      'Testing', 'QA', 'Seguridad', 'Arquitectura',
-      'Data Science', 'Machine Learning', 'IA', 'Data Analytics'
-    ],
-    'Diseño': [
-      'UI Design', 'UX Design', 'Product Design', 'Graphic Design',
-      'Branding Design', 'Ilustración', 'Animación', 'Video',
-      'Fotografía', 'Motion Graphics', '3D', 'Prototipado'
-    ],
-    'Negocio': [
-      'Estrategia', 'Business Development', 'Ventas', 'Negociación',
-      'Fundraising', 'Pitch', 'Finanzas', 'Contabilidad',
-      'Operaciones', 'Logística', 'Legal', 'Compliance'
-    ],
-    'Marketing': [
-      'Marketing Digital', 'SEO', 'SEM', 'Social Media',
-      'Content', 'Copywriting', 'Email Marketing', 'Growth',
-      'Web Analytics', 'Paid Ads', 'Community', 'PR'
-    ],
-    'Gestión': [
-      'Project Management', 'Product Management', 'Agile', 'Scrum',
-      'Liderazgo', 'Team Building', 'Comunicación', 'Presentaciones',
-      'Facilitación', 'Coaching', 'Mentoría', 'Recruiting'
     ]
   }
 
@@ -185,20 +169,6 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
       'Conocimiento de competidores', 'Tendencias del sector'
     ]
   }
-
-  const availabilityOptions = [
-    'Tiempo completo', 'Medio tiempo', 'Solo tardes', 'Solo mañanas',
-    'Fines de semana', 'Noches', 'Flexible', 'Por proyecto',
-    'Freelance', 'Remoto', 'Presencial', 'Híbrido'
-  ]
-
-  const entrepreneurshipStages = [
-    { value: 1, label: 'Idea', emoji: '💡' },
-    { value: 2, label: 'Validación', emoji: '🔍' },
-    { value: 3, label: 'MVP', emoji: '🛠️' },
-    { value: 4, label: 'Crecimiento', emoji: '📈' },
-    { value: 5, label: 'Escala', emoji: '🚀' }
-  ]
 
   // Función para filtrar tags por búsqueda y categoría
   const filterTags = (categories) => {
@@ -310,10 +280,30 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
             <label>Tu nombre *</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              placeholder="Juan Pérez"
+              value={formData.fullName}
+              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+              placeholder="Laura Martín"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Empresa / Proyecto</label>
+            <input
+              type="text"
+              value={formData.company}
+              onChange={(e) => setFormData({...formData, company: e.target.value})}
+              placeholder="Nombre de tu organización"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Rol</label>
+            <input
+              type="text"
+              value={formData.role}
+              onChange={(e) => setFormData({...formData, role: e.target.value})}
+              placeholder="Ej: Head of Sales"
             />
           </div>
 
@@ -329,11 +319,42 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
           </div>
 
           <div className="form-group">
+            <label>Teléfono</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              placeholder="+34 600 000 000"
+            />
+            <div className="checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.sharePhone}
+                  onChange={(e) => setFormData({...formData, sharePhone: e.target.checked})}
+                />
+                <span>Compartir mi teléfono cuando haya match mutuo</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="form-group">
             <label>Sobre ti *</label>
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({...formData, bio: e.target.value})}
               placeholder="Cuéntanos brevemente quién eres y a qué te dedicas..."
+              rows="3"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Objetivo en este evento *</label>
+            <textarea
+              value={formData.goals}
+              onChange={(e) => setFormData({...formData, goals: e.target.value})}
+              placeholder="¿Qué tipo de conexiones te ayudarían hoy?"
               rows="3"
               required
             />
@@ -349,101 +370,6 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
               <TagSelectorWithSearch field="interests" categories={interestCategories} />
             </div>
 
-            <div className="form-section">
-              <h3>💪 ¿Qué se te da bien?</h3>
-              <p className="form-hint">Tus habilidades y fortalezas principales</p>
-              <TagSelectorWithSearch field="skills" categories={skillsCategories} colorClass="tag-skill-option" />
-            </div>
-
-            <div className="form-section">
-              <h3>📊 Nivel de compromiso</h3>
-              <p className="form-hint">¿Cuánto tiempo/energía puedes dedicar a nuevos proyectos?</p>
-              
-              <div className="commitment-slider">
-                <div className="slider-labels">
-                  <span>Bajo</span>
-                  <span className="slider-value-large">{formData.commitmentLevel}/10</span>
-                  <span>Alto</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={formData.commitmentLevel}
-                  onChange={(e) => setFormData({...formData, commitmentLevel: parseInt(e.target.value)})}
-                  className="commitment-range"
-                />
-                <p className="commitment-description">
-                  {formData.commitmentLevel <= 3 && '🕐 Disponibilidad limitada - Solo consultas puntuales'}
-                  {formData.commitmentLevel > 3 && formData.commitmentLevel <= 6 && '⏰ Disponibilidad media - Puedo colaborar en proyectos'}
-                  {formData.commitmentLevel > 6 && formData.commitmentLevel <= 8 && '⚡ Alta disponibilidad - Busco proyectos activamente'}
-                  {formData.commitmentLevel > 8 && '🚀 Máximo compromiso - All-in en el proyecto correcto'}
-                </p>
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h3>💼 Proyecto actual</h3>
-              <div className="checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.hasActiveProject}
-                    onChange={(e) => setFormData({...formData, hasActiveProject: e.target.checked})}
-                  />
-                  <span>Actualmente trabajo en un proyecto</span>
-                </label>
-              </div>
-              
-              {formData.hasActiveProject && (
-                <div className="form-group">
-                  <label>Cuéntanos sobre tu proyecto</label>
-                  <textarea
-                    value={formData.currentProject}
-                    onChange={(e) => setFormData({...formData, currentProject: e.target.value})}
-                    placeholder="Ej: Estoy desarrollando una app de fintech para..."
-                    rows="2"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-section">
-              <h3>📅 Disponibilidad</h3>
-              <p className="form-hint">¿Cuándo puedes conectar o trabajar?</p>
-              
-              <div className="tag-selector">
-                {availabilityOptions.map(option => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`tag-option tag-availability-option ${formData.availability.includes(option) ? 'selected' : ''}`}
-                    onClick={() => toggleTag('availability', option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h3>🚀 Fase de emprendimiento</h3>
-              <p className="form-hint">¿En qué etapa te encuentras?</p>
-              
-              <div className="stage-selector">
-                {entrepreneurshipStages.map(stage => (
-                  <button
-                    key={stage.value}
-                    type="button"
-                    className={`stage-btn ${formData.conversationDepth === stage.value ? 'selected' : ''}`}
-                    onClick={() => setFormData({...formData, conversationDepth: stage.value})}
-                  >
-                    <span className="stage-emoji">{stage.emoji}</span>
-                    <span className="stage-label">{stage.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </>
         )}
 
@@ -453,84 +379,13 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
             <div className="form-section">
               <h3>🔍 ¿Qué buscas?</h3>
               <p className="form-hint">Busca y selecciona lo que necesitas</p>
-              <TagSelectorWithSearch field="seeking" categories={seekingCategories} colorClass="tag-seeking-option" />
+              <TagSelectorWithSearch field="needs" categories={seekingCategories} colorClass="tag-seeking-option" />
             </div>
 
             <div className="form-section">
               <h3>💎 ¿Qué ofreces?</h3>
               <p className="form-hint">Busca y selecciona lo que puedes aportar</p>
-              <TagSelectorWithSearch field="offering" categories={offeringCategories} colorClass="tag-offering-option" />
-            </div>
-
-            <div className="form-section">
-              <h3>📊 Nivel de compromiso</h3>
-              <p className="form-hint">¿Cuánto puedes involucrarte en un nuevo proyecto?</p>
-              
-              <div className="commitment-slider">
-                <div className="slider-labels">
-                  <span>Bajo</span>
-                  <span className="slider-value-large">{formData.commitmentLevel}/10</span>
-                  <span>Alto</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={formData.commitmentLevel}
-                  onChange={(e) => setFormData({...formData, commitmentLevel: parseInt(e.target.value)})}
-                  className="commitment-range"
-                />
-                <p className="commitment-description">
-                  {formData.commitmentLevel <= 3 && '🕐 Disponibilidad limitada - Solo consultas puntuales'}
-                  {formData.commitmentLevel > 3 && formData.commitmentLevel <= 6 && '⏰ Disponibilidad media - Puedo colaborar en proyectos'}
-                  {formData.commitmentLevel > 6 && formData.commitmentLevel <= 8 && '⚡ Alta disponibilidad - Busco proyectos activamente'}
-                  {formData.commitmentLevel > 8 && '🚀 Máximo compromiso - All-in en el proyecto correcto'}
-                </p>
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h3>💼 Proyecto actual</h3>
-              <div className="checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.hasActiveProject}
-                    onChange={(e) => setFormData({...formData, hasActiveProject: e.target.checked})}
-                  />
-                  <span>Actualmente trabajo en un proyecto</span>
-                </label>
-              </div>
-              
-              {formData.hasActiveProject && (
-                <div className="form-group">
-                  <label>Cuéntanos sobre tu proyecto</label>
-                  <textarea
-                    value={formData.currentProject}
-                    onChange={(e) => setFormData({...formData, currentProject: e.target.value})}
-                    placeholder="Ej: Estoy desarrollando una app de fintech para..."
-                    rows="2"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-section">
-              <h3>📅 Disponibilidad</h3>
-              <p className="form-hint">¿Cuándo puedes trabajar o reunirte?</p>
-              
-              <div className="tag-selector">
-                {availabilityOptions.map(option => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`tag-option tag-availability-option ${formData.availability.includes(option) ? 'selected' : ''}`}
-                    onClick={() => toggleTag('availability', option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+              <TagSelectorWithSearch field="offers" categories={offeringCategories} colorClass="tag-offering-option" />
             </div>
           </>
         )}
@@ -541,31 +396,22 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
             <div className="form-section">
               <h3>🧭 Áreas de interés (opcional)</h3>
               <p className="form-hint">Selecciona 2-3 categorías generales</p>
-              <TagSelectorWithSearch field="broadTags" categories={{'General': interestCategories['Tecnología'].concat(interestCategories['Negocios']).slice(0, 15)}} colorClass="tag-broad-option" />
-            </div>
-
-            <div className="form-section">
-              <h3>📅 Disponibilidad</h3>
-              <p className="form-hint">¿Cuándo puedes conectar?</p>
-              
-              <div className="tag-selector">
-                {availabilityOptions.map(option => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`tag-option tag-availability-option ${formData.availability.includes(option) ? 'selected' : ''}`}
-                    onClick={() => toggleTag('availability', option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+              <TagSelectorWithSearch field="interests" categories={interestCategories} colorClass="tag-broad-option" />
             </div>
           </>
         )}
 
-        <button type="submit" className="btn-primary btn-large">
-          Encontrar conexiones →
+        <button 
+          type="submit" 
+          className="btn-primary"
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="flex items-center">
+              <Spinner className="mr-2" />
+              Guardando...
+            </span>
+          ) : 'Guardar perfil'}
         </button>
       </form>
     </div>

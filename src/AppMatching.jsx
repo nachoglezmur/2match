@@ -1,29 +1,134 @@
-import { useState } from 'react'
-import { supabase } from './supabaseClient'
-import WelcomeScreen from './components/WelcomeScreen'
+import { useState, useRef, useEffect } from 'react'
+import * as api from './api'
 import ModeSelection from './components/ModeSelection'
 import ProfileSetup from './components/ProfileSetup'
 import MatchesFeed from './components/MatchesFeed'
 import ProfileDetail from './components/ProfileDetail'
-import ChatWindow from './components/ChatWindow'
 import './AppMatching.css'
+import logo from '../logo.png'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const EVENT_ID = '00000000-0000-0000-0000-000000000001'
 
 function AppMatching() {
-  const [currentScreen, setCurrentScreen] = useState('welcome')
-  const [currentUser, setCurrentUser] = useState(null)
-  const [currentProfile, setCurrentProfile] = useState(null)
+  const [currentScreen, setCurrentScreen] = useState('modeSelection')
   const [selectedMode, setSelectedMode] = useState(null)
+  const [participant, setParticipant] = useState(null)
   const [matches, setMatches] = useState([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [selectedMatch, setSelectedMatch] = useState(null)
-  const [chatMatch, setChatMatch] = useState(null)
+  const [confirmedMatches, setConfirmedMatches] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [contactInfo, setContactInfo] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const [searchPerformed, setSearchPerformed] = useState(false)
+  const dismissedPeersRef = useRef(new Set())
 
-  const handleStart = () => {
-    setCurrentScreen('modeSelection')
+  const normalizeText = (value) => {
+    return (value ?? '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  const levenshtein = (a, b) => {
+    if (a === b) return 0
+    if (!a.length) return b.length
+    if (!b.length) return a.length
+
+    const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0))
+
+    for (let i = 0; i <= a.length; i++) {
+      matrix[i][0] = i
+    }
+    for (let j = 0; j <= b.length; j++) {
+      matrix[0][j] = j
+    }
+
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        )
+      }
+    }
+
+    return matrix[a.length][b.length]
+  }
+
+  const fuzzyMatch = (text, normalizedTerm) => {
+    if (!normalizedTerm) return false
+    const normalizedText = normalizeText(
+      typeof text === 'string' && text.startsWith('__auto:')
+        ? text.substring('__auto:'.length)
+        : text
+    )
+    if (!normalizedText) return false
+    if (normalizedText.includes(normalizedTerm)) return true
+
+    const tokens = normalizedText.split(' ').filter(Boolean)
+    return tokens.some(token => {
+      if (token.includes(normalizedTerm) || normalizedTerm.includes(token)) {
+        return true
+      }
+
+      if (Math.abs(token.length - normalizedTerm.length) > 2) {
+        return false
+      }
+
+      if (token.length < 3 || normalizedTerm.length < 3) {
+        return false
+      }
+
+      return levenshtein(token, normalizedTerm) <= 1
+    })
+  }
+
+  const generateTagVariants = (tags = []) => {
+    const result = new Set()
+
+    tags.forEach(tag => {
+      const original = (tag || '').trim()
+      if (!original) return
+      result.add(original)
+
+      const normalized = normalizeText(original)
+      if (normalized) {
+        result.add(`__auto:${normalized}`)
+
+        const words = normalized.split(' ').filter(Boolean)
+        words.forEach(word => {
+          if (word.length >= 4) {
+            result.add(`__auto:${word}`)
+          }
+        })
+
+        for (let i = 0; i < words.length - 1; i++) {
+          const bigram = `${words[i]} ${words[i + 1]}`.trim()
+          if (bigram.length >= 6) {
+            result.add(`__auto:${bigram}`)
+          }
+        }
+      }
+    })
+
+    return Array.from(result)
+  }
+
+  const filterDisplayTags = (tags = []) => {
+    return tags.filter(tag => typeof tag === 'string' && !tag.startsWith('__auto:'))
   }
 
   const handleSelectMode = (mode) => {
@@ -32,145 +137,116 @@ function AppMatching() {
   }
 
   const handleProfileComplete = async (profileData) => {
-    setLoading(true)
-    setError('')
-
     try {
-      // 1. Crear o actualizar usuario
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert({
-          name: profileData.name,
-          email: profileData.email,
-          bio: profileData.bio
-        }, {
-          onConflict: 'email',
-          ignoreDuplicates: false
-        })
-        .select()
-        .single()
+      setLoading(true)
+      setError('')
 
-      if (userError) throw userError
-      setCurrentUser(userData)
-
-      // 2. Crear perfil de evento
-      const profilePayload = {
-        user_id: userData.id,
-        event_id: EVENT_ID,
-        connection_mode: selectedMode,
-        interests: JSON.stringify(profileData.interests || []),
-        personality_traits: JSON.stringify(profileData.personalityTraits || []),
-        seeking: JSON.stringify(profileData.seeking || []),
-        offering: JSON.stringify(profileData.offering || []),
-        broad_tags: JSON.stringify(profileData.broadTags || []),
-        skills: JSON.stringify(profileData.skills || []),
-        current_project: profileData.currentProject || null,
-        has_active_project: profileData.hasActiveProject || false,
-        commitment_level: profileData.commitmentLevel || 5,
-        availability: JSON.stringify(profileData.availability || []),
-        conversation_depth: profileData.conversationDepth || 5
+      const payload = {
+        id: participant?.id,
+        full_name: profileData.fullName,
+        email: profileData.email,
+        phone: profileData.phone,
+        company: profileData.company,
+        role: profileData.role,
+        bio: profileData.bio,
+        goals: profileData.goals,
+        share_phone: profileData.sharePhone ?? true,
+        interests: profileData.interests ?? [],
+        offers: profileData.offers ?? [],
+        needs: profileData.needs ?? [],
       }
 
-      const { data: eventProfileData, error: profileError } = await supabase
-        .from('event_profiles')
-        .upsert(profilePayload, {
-          onConflict: 'user_id,event_id',
-          ignoreDuplicates: false
-        })
-        .select()
-        .single()
+      const savedProfile = await api.saveParticipant(payload)
 
-      if (profileError) throw profileError
-      setCurrentProfile(eventProfileData)
-
-      // 3. Obtener matches
-      await loadMatches(eventProfileData.id)
-
+      setParticipant(savedProfile)
+      
+      toast.success('¡Perfil guardado correctamente!')
+      
+      await loadMatches(savedProfile.id)
       setCurrentScreen('feed')
     } catch (err) {
-      console.error('Error:', err)
-      setError('Error al crear el perfil. Por favor intenta de nuevo.')
+      console.error('Error saving profile:', err)
+      setError(err.message || 'Error al guardar el perfil')
+      toast.error(err.message || 'Error al guardar el perfil')
     } finally {
       setLoading(false)
     }
   }
 
-  const loadMatches = async (profileId) => {
+  const loadMatches = async (participantId) => {
     try {
-      const { data, error } = await supabase
-        .rpc('get_best_matches', {
-          for_profile_id: profileId,
-          limit_count: 20
-        })
+      setLoading(true)
+      setError('')
 
-      if (error) throw error
-      setMatches(data || [])
+      const matchesData = await api.getMatches(participantId)
+
+      const filteredData = matchesData
+        .filter(match => !dismissedPeersRef.current.has(match.peer_id))
+
+      setMatches(filteredData)
       setCurrentMatchIndex(0)
+
+      await loadConfirmedMatches(participantId)
     } catch (err) {
       console.error('Error loading matches:', err)
-      setError('Error al cargar matches')
+      setError('Error al cargar los matches. Por favor, inténtalo de nuevo.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleMatchAction = async (action) => {
-    if (!matches[currentMatchIndex]) return
+  const loadConfirmedMatches = async (participantId) => {
+    try {
+      const data = await api.getConfirmedMatches(participantId)
+      setConfirmedMatches(data || [])
+    } catch (err) {
+      console.error('Error loading confirmed matches:', err)
+    }
+  }
 
-    const currentMatch = matches[currentMatchIndex]
+  const removeMatchById = (peerId) => {
+    if (peerId) {
+      dismissedPeersRef.current.add(peerId)
+    }
+
+    setMatches(prev => {
+      const filtered = prev.filter(match => match.peer_id !== peerId)
+      setCurrentMatchIndex(prevIndex => (prevIndex >= filtered.length ? 0 : prevIndex))
+      return filtered
+    })
+
+    setSelectedMatch(null)
+  }
+
+  const removeSearchResultById = (peerId) => {
+    setSearchResults(prev => prev.filter(result => result.peer_id !== peerId))
+  }
+
+  const handleMatchDecision = async (action, targetMatch = null) => {
+    const match = targetMatch || matches[currentMatchIndex]
+    if (!match || !participant) return
 
     try {
-      // Crear o encontrar el match en la base de datos
-      const { data: matchData, error: matchError } = await supabase
-        .from('matches')
-        .select('id')
-        .or(`and(profile1_id.eq.${currentProfile.id},profile2_id.eq.${currentMatch.profile_id}),and(profile1_id.eq.${currentMatch.profile_id},profile2_id.eq.${currentProfile.id})`)
-        .single()
+      setLoading(true)
+      setError('')
 
-      let matchId = matchData?.id
+      const result = await api.recordMatchDecision(participant.id, match.peer_id, action)
 
-      if (!matchId) {
-        // Crear el match si no existe
-        const { data: newMatch, error: createError } = await supabase
-          .from('matches')
-          .insert({
-            event_id: EVENT_ID,
-            profile1_id: currentProfile.id,
-            profile2_id: currentMatch.profile_id,
-            score: currentMatch.match_score,
-            match_type: currentMatch.match_type,
-            reason: currentMatch.match_reason
-          })
-          .select()
-          .single()
-
-        if (createError) throw createError
-        matchId = newMatch.id
+      if (result?.contact) {
+        setContactInfo({ ...result.contact, isMutual: !!result.is_mutual })
       }
 
-      // Registrar la interacción
-      const { error: interactionError } = await supabase
-        .from('match_interactions')
-        .insert({
-          match_id: matchId,
-          user_id: currentUser.id,
-          action: action
-        })
+      removeMatchById(match.peer_id)
+      removeSearchResultById(match.peer_id)
 
-      if (interactionError) throw interactionError
+      dismissedPeersRef.current.add(match.peer_id)
 
-      // Si conectó, abrir chat
-      if (action === 'connected') {
-        setChatMatch(currentMatch)
-        setCurrentScreen('chat')
-      } else {
-        // Avanzar al siguiente match para otras acciones
-        if (currentMatchIndex < matches.length - 1) {
-          setCurrentMatchIndex(currentMatchIndex + 1)
-        } else {
-          setMatches([])
-        }
-      }
+      await loadConfirmedMatches(participant.id)
     } catch (err) {
-      console.error('Error recording action:', err)
+      console.error('Error processing match decision:', err)
+      setError('Error al procesar la decisión. Por favor, inténtalo de nuevo.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -184,28 +260,92 @@ function AppMatching() {
     setCurrentScreen('feed')
   }
 
-  const handleBackFromChat = () => {
-    setChatMatch(null)
-    setCurrentScreen('feed')
-    // Avanzar al siguiente match
-    if (currentMatchIndex < matches.length - 1) {
-      setCurrentMatchIndex(currentMatchIndex + 1)
-    } else {
-      setMatches([])
-    }
-  }
-
-  const handleViewProfileFromChat = (match) => {
-    setSelectedMatch(match)
-    setCurrentScreen('profileDetail')
-  }
-
   const handleBackFromSetup = () => {
     setCurrentScreen('modeSelection')
   }
 
+  const handleOpenSearch = () => {
+    setSearchTerm('')
+    setSearchResults([])
+    setSearchError('')
+    setSearchPerformed(false)
+    setSelectedMatch(null)
+    setCurrentScreen('search')
+  }
+
+  const handleBackFromSearch = () => {
+    setCurrentScreen('feed')
+  }
+
+  const mapParticipantToMatch = (record) => {
+    const normalized = {
+      peer_id: record.id,
+      peer_name: record.full_name,
+      peer_company: record.company,
+      peer_role: record.role,
+      peer_bio: record.bio,
+      peer_goals: record.goals,
+      peer_interests: record.interests || [],
+      peer_offers: record.offers || [],
+      peer_needs: record.needs || []
+    }
+    return normalized
+  }
+
+  const handleSearch = async (event) => {
+    event.preventDefault()
+    if (!searchTerm.trim()) {
+      setSearchResults([])
+      setSearchError('')
+      setSearchPerformed(false)
+      return
+    }
+
+    try {
+      setSearchLoading(true)
+      setSearchError('')
+      setSearchPerformed(true)
+
+      const results = await api.searchParticipants(searchTerm, participant?.id)
+
+      const confirmedMatchIds = new Set(confirmedMatches.map(m => m.other_participant || m.peer_id || m.id))
+      const filteredResults = results
+        .filter(profile => 
+          !dismissedPeersRef.current.has(profile.id) && 
+          !confirmedMatchIds.has(profile.id)
+        )
+        .map(profile => ({
+          ...profile,
+          peer_id: profile.id,
+          peer_name: profile.full_name,
+          peer_company: profile.company,
+          peer_role: profile.role,
+          peer_bio: profile.bio,
+          peer_goals: profile.goals,
+          peer_interests: profile.interests || [],
+          peer_offers: profile.offers || [],
+          peer_needs: profile.needs || []
+        }))
+
+      setSearchResults(filteredResults)
+    } catch (err) {
+      console.error('Error searching:', err)
+      setSearchError('Error al realizar la búsqueda. Por favor, inténtalo de nuevo.')
+      setSearchResults([])
+      setSearchError('No se pudo realizar la búsqueda. Inténtalo de nuevo.')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  const handleSelectSearchResult = (match) => {
+    setSelectedMatch(match)
+    setCurrentScreen('profileDetail')
+  }
+
   return (
     <div className="app-container">
+      <ToastContainer position="bottom-center" autoClose={3000} hideProgressBar theme="dark" />
       {loading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -220,12 +360,14 @@ function AppMatching() {
         </div>
       )}
 
-      {currentScreen === 'welcome' && (
-        <WelcomeScreen onStart={handleStart} />
-      )}
-
       {currentScreen === 'modeSelection' && (
-        <ModeSelection onSelectMode={handleSelectMode} />
+        <div className="screen mode-selection-wrapper">
+          <div className="logo-banner">
+            <img src={logo} alt="2Match" className="logo-image" />
+            <p>Conecta con la persona adecuada en segundos.</p>
+          </div>
+          <ModeSelection onSelectMode={handleSelectMode} />
+        </div>
       )}
 
       {currentScreen === 'profileSetup' && (
@@ -240,29 +382,183 @@ function AppMatching() {
         <MatchesFeed
           matches={matches}
           currentIndex={currentMatchIndex}
-          onAction={handleMatchAction}
+          onMatch={(match) => handleMatchDecision('match', match)}
+          onSkip={(match) => handleMatchDecision('skip', match)}
           onViewProfile={handleViewProfile}
+          onOpenSearch={handleOpenSearch}
+          confirmedMatches={confirmedMatches}
         />
+      )}
+
+      {currentScreen === 'search' && (
+        <div className="screen matches-feed-screen">
+          <button className="btn-back" onClick={handleBackFromSearch}>← Volver</button>
+
+          <div className="feed-header">
+            <h2>Buscar personas</h2>
+            <p className="match-counter">Encuentra perfiles por nombre, bio o intereses.</p>
+          </div>
+
+          <form onSubmit={handleSearch} className="form">
+            <div className="form-group">
+              <label htmlFor="searchTerm">Término de búsqueda</label>
+              <input
+                id="searchTerm"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Ej: marketing, diseñador, Laura"
+                className="input"
+              />
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={searchLoading}>
+              {searchLoading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
+
+          {searchError && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {searchError}
+            </div>
+          )}
+
+          {!searchLoading && searchPerformed && searchResults.length === 0 && !searchError && (
+            <div className="no-matches">
+              <div className="no-matches-icon">🔍</div>
+              <h2>Sin resultados</h2>
+              <p>No encontramos perfiles que coincidan con tu búsqueda.</p>
+            </div>
+          )}
+
+          <div className="match-list">
+            {searchResults.map(result => (
+              <div key={result.peer_id} className="match-card search-result-card">
+                <div className="match-card-header">
+                  <div className="match-avatar">
+                    <div className="avatar-placeholder">
+                      {result.peer_name?.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+
+                  <div className="match-info">
+                    <h3>{result.peer_name}</h3>
+                    {(result.peer_role || result.peer_company) && (
+                      <p className="match-company">{[result.peer_role, result.peer_company].filter(Boolean).join(' · ')}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="match-card-body">
+                  {(result.peer_bio || result.peer_goals) && (
+                    <div className="match-bio">
+                      {result.peer_bio && <p>{result.peer_bio}</p>}
+                      {result.peer_goals && (
+                        <p className="match-goals"><strong>Objetivo:</strong> {result.peer_goals}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="match-tags">
+                    {result.peer_interests && result.peer_interests.length > 0 && (
+                      <div className="tag-group">
+                        <h4>Intereses</h4>
+                        <div className="tags-list">
+                          {result.peer_interests.slice(0, 6).map((interest, idx) => (
+                            <span key={idx} className="tag">{interest}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {result.peer_needs && result.peer_needs.length > 0 && (
+                      <div className="tag-group">
+                        <h4>Busca</h4>
+                        <div className="tags-list">
+                          {result.peer_needs.slice(0, 6).map((need, idx) => (
+                            <span key={idx} className="tag tag-seeking">{need}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {result.peer_offers && result.peer_offers.length > 0 && (
+                      <div className="tag-group">
+                        <h4>Ofrece</h4>
+                        <div className="tags-list">
+                          {result.peer_offers.slice(0, 6).map((offer, idx) => (
+                            <span key={idx} className="tag tag-offering">{offer}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="search-result-actions">
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => handleSelectSearchResult(result)}
+                  >
+                    Ver perfil
+                  </button>
+                  <button
+                    className="btn-primary"
+                    type="button"
+                    onClick={() => handleMatchDecision('match', result)}
+                    disabled={loading}
+                  >
+                    Hacer match
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {currentScreen === 'profileDetail' && (
         <ProfileDetail
           match={selectedMatch}
           onBack={handleBackFromDetail}
-          onAction={(action) => {
-            handleMatchAction(action)
+          onMatch={(match) => {
+            handleMatchDecision('match', match)
+            handleBackFromDetail()
+          }}
+          onSkip={(match) => {
+            handleMatchDecision('skip', match)
             handleBackFromDetail()
           }}
         />
       )}
 
-      {currentScreen === 'chat' && chatMatch && (
-        <ChatWindow
-          match={chatMatch}
-          currentUser={{ ...currentUser, profile_id: currentProfile.id }}
-          onClose={handleBackFromChat}
-          onViewProfile={handleViewProfileFromChat}
-        />
+      {contactInfo && (
+        <div className="contact-modal">
+          <div className="contact-card">
+            <div className="contact-icon">🤝</div>
+            <h3>¡Match confirmado!</h3>
+            <p>Ahora puedes contactar con <strong>{contactInfo.name}</strong>.</p>
+
+            <div className="contact-details">
+              {contactInfo.email && (
+                <a href={`mailto:${contactInfo.email}`} className="contact-pill">
+                  <span className="pill-icon">📧</span>
+                  <span>{contactInfo.email}</span>
+                </a>
+              )}
+              {contactInfo.phone && (
+                <a href={`tel:${contactInfo.phone}`} className="contact-pill">
+                  <span className="pill-icon">📱</span>
+                  <span>{contactInfo.phone}</span>
+                </a>
+              )}
+            </div>
+
+            <button className="btn-primary" onClick={() => setContactInfo(null)}>Cerrar</button>
+          </div>
+        </div>
       )}
     </div>
   )

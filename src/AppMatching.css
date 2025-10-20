@@ -187,6 +187,35 @@ body {
   gap: 20px;
 }
 
+.mode-selection-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+.logo-banner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.logo-image {
+  max-width: 160px;
+  width: 100%;
+  height: auto;
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.logo-banner p {
+  color: var(--gray-600);
+  font-size: 15px;
+  max-width: 320px;
+}
+
 .mode-card {
   background: var(--gray-50);
   border: 2px solid var(--gray-200);
@@ -1355,6 +1384,92 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.contact-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1200;
+}
+
+.contact-card {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 32px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contact-icon {
+  font-size: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.contact-card h3 {
+  font-size: 24px;
+  color: var(--gray-900);
+  margin-bottom: -8px;
+}
+
+.contact-card p {
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.contact-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: var(--gray-100);
+  border: 2px solid var(--gray-200);
+  color: var(--gray-700);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.contact-pill:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.pill-icon {
+  font-size: 20px;
+}
+
+.contact-card .btn-primary {
+  width: 100%;
+  margin-top: 4px;
 }
 
 /* ============================================
