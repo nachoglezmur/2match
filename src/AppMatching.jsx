@@ -33,12 +33,9 @@ function AppMatching() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/me');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.logged_in) {
-            setUser(data.user_info);
-          }
+        const data = await api.getMe();
+        if (data.logged_in) {
+          setUser(data.user_info);
         }
       } catch (error) {
         console.error('Error fetching user:', error);

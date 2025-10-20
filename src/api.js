@@ -99,3 +99,18 @@ export const searchParticipants = async (term, excludeId) => {
     throw error;
   }
 };
+
+export const getMe = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/me`);
+    
+    if (!response.ok) {
+      return { logged_in: false };
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error:', error);
+    return { logged_in: false };
+  }
+};
