@@ -18,7 +18,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         value: "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"
       - key: FRONTEND_URL
-        value: "https://nachoglezmur.github.io"
+        value: "https://nachoglezmur.github.io/2match/"
       - key: CORS_ORIGINS
         # This should be the URL of your deployed frontend on GitHub Pages.
         value: "https://nachoglezmur.github.io"
