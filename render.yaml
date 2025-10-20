@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: backend
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "gunicorn 'backend.app:app'"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        # This will be set in the Render dashboard.
+        # Make sure to use the connection pooler URL from Supabase.
+        value: "YOUR_SUPABASE_DATABASE_URL"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        # This should be the URL of your deployed frontend on GitHub Pages.
+        value: "YOUR_GITHUB_PAGES_URL"
