@@ -27,7 +27,7 @@ def create_app(config_name: str | None = None) -> Flask:
     db.init_app(app)
     
     # Configurar CORS
-    CORS(app, origins=app.config.get('CORS_ORIGINS', '*'), supports_credentials=True)
+    CORS(app, origins=["https://nachoglezmur.github.io"], supports_credentials=True)
 
     # Registrar blueprints
     from .routes import api_bp
