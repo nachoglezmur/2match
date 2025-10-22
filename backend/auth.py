@@ -53,6 +53,9 @@ def init_app(app):
             if not redirect_uri.startswith('https://') and os.getenv('FLASK_ENV') == 'production':
                 redirect_uri = redirect_uri.replace('http://', 'https://', 1)
             
+            # Store redirect_uri in session so callback can use the same one
+            session['oauth_redirect_uri'] = redirect_uri
+            
             app.logger.info(f"Initiating Google OAuth with redirect_uri: {redirect_uri}")
             return google.authorize_redirect(redirect_uri=redirect_uri, prompt='select_account')
 
@@ -99,6 +102,12 @@ def init_app(app):
                 # Exchange the authorization code for tokens
                 try:
                     app.logger.info("Attempting to exchange code for token...")
+                    
+                    # Get the redirect_uri from session (same one used in initial request)
+                    redirect_uri = session.get('oauth_redirect_uri')
+                    
+                    # Call authorize_access_token without explicit redirect_uri
+                    # Authlib will automatically use the correct redirect_uri from the OAuth flow
                     token = google.authorize_access_token()
                     
                     app.logger.info("Token exchange successful")
@@ -187,6 +196,9 @@ def init_app(app):
                 # Set session variables
                 session['user_id'] = str(user.id)
                 session['user_info'] = user_info
+                
+                # Clean up OAuth-related session data
+                session.pop('oauth_redirect_uri', None)
 
                 # Get the return_to path from session or use default
                 return_to = session.pop('return_to', '')
