@@ -52,7 +52,7 @@ def create_app(config_name: str | None = None) -> Flask:
         app.config.update(
             SESSION_COOKIE_SECURE=True,
             SESSION_COOKIE_HTTPONLY=True,
-            SESSION_COOKIE_SAMESITE='Lax'
+            SESSION_COOKIE_SAMESITE='None'
         )
     
     # Registrar blueprints
