@@ -47,11 +47,14 @@ def init_app(app):
 
         @app.route('/api/login/google')
         def login():
-            # Ensure we're using HTTPS in production
-            redirect_uri = url_for('auth_callback', _external=True)
-            if app.config.get('ENV') == 'production' and not redirect_uri.startswith('https'):
+            configured_redirect = os.getenv('GOOGLE_REDIRECT_URI')
+            redirect_uri = configured_redirect or url_for('auth_callback', _external=True)
+
+            if not redirect_uri.startswith('https://') and configured_redirect:
+                # Google OAuth requiere coincidencia exacta con HTTPS en producción
                 redirect_uri = redirect_uri.replace('http://', 'https://', 1)
-            return google.authorize_redirect(redirect_uri, prompt='select_account')
+
+            return google.authorize_redirect(redirect_uri=redirect_uri, prompt='select_account')
 
         @app.route('/api/login/google/callback')
         def auth_callback():
