@@ -49,124 +49,120 @@ export default function ProfileSetup({ mode, onComplete, onBack }) {
     }).finally(() => setLoading(false))
   }
 
-  // CATEGORÍAS DE INTERESES CON MUCHOS MÁS TAGS
+  // CATEGORÍAS DE INTERESES - PERFIL DIVERSO
   const interestCategories = {
-    'Tecnología': [
-      'IA', 'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision',
-      'Blockchain', 'Web3', 'Criptomonedas', 'NFTs', 'DeFi',
-      'Cloud Computing', 'DevOps', 'Ciberseguridad', 'IoT', 'Big Data',
-      'Data Science', 'Data Analytics', 'Business Intelligence',
-      'Desarrollo Web', 'Desarrollo Mobile', 'Frontend', 'Backend', 'Full Stack',
-      'React', 'Vue', 'Angular', 'Node.js', 'Python', 'Java', 'Go',
-      'APIs', 'Microservicios', 'Arquitectura de Software'
+    'Tech': [
+      'Programación o desarrollo de apps',
+      'Robótica o automatización',
+      'Inteligencia artificial o datos',
+      'Ciberseguridad o sistemas',
+      'Ingeniería',
+      'Informática'
     ],
-    'Negocios': [
-      'Startups', 'Emprendimiento', 'Inversión', 'Venture Capital', 'Angel Investing',
-      'Fundraising', 'Pitch Deck', 'Business Model', 'Lean Startup',
-      'Product-Market Fit', 'Go-to-Market', 'Escalabilidad',
-      'SaaS', 'B2B', 'B2C', 'Marketplace', 'E-commerce', 'Retail',
-      'Fintech', 'Healthtech', 'Edtech', 'Proptech', 'Agritech',
-      'Logística', 'Supply Chain', 'Operaciones', 'Procesos'
+    'Business': [
+      'Creación de empresas o startups',
+      'Finanzas personales o inversiones',
+      'Innovación y liderazgo',
+      'Comercio electrónico',
+      'Emprendimiento',
+      'Economía'
     ],
-    'Marketing': [
-      'Marketing Digital', 'Growth Hacking', 'SEO', 'SEM', 'Content Marketing',
-      'Social Media', 'Community Management', 'Influencer Marketing',
-      'Email Marketing', 'Marketing Automation', 'CRM Marketing', 'Lead Generation',
-      'Conversion Rate Optimization', 'A/B Testing', 'Marketing Analytics',
-      'Branding', 'Copywriting', 'Storytelling', 'PR', 'Comunicación',
-      'Performance Marketing', 'Paid Ads', 'Facebook Ads', 'Google Ads'
+    'Marketing y Comunicación': [
+      'Redes sociales y creación de contenido',
+      'Publicidad o diseño gráfico',
+      'Comunicación digital',
+      'Investigación de mercado o tendencias',
+      'Marketing',
+      'Ventas'
     ],
-    'Producto': [
-      'Product Management', 'Product Design', 'UX', 'UI', 'UX Research',
-      'User Testing', 'Wireframing', 'Prototyping', 'Design Thinking',
-      'Figma', 'Sketch', 'Adobe XD', 'Design Systems',
-      'Product Strategy', 'Roadmap', 'Priorización', 'Métricas de Producto',
-      'Customer Development', 'Jobs to be Done', 'User Stories'
+    'Producto y Ventas': [
+      'Diseño o mejora de productos',
+      'Atención al cliente',
+      'Estrategias de venta',
+      'Gestión de marcas'
     ],
-    'Ventas': [
-      'Sales', 'Business Development', 'Account Management', 'Customer Success',
-      'Prospección', 'Cold Calling', 'Cold Email', 'LinkedIn Sales',
-      'Negociación', 'Closing', 'Pipeline Management', 'CRM Ventas',
-      'Enterprise Sales', 'SMB Sales', 'Inside Sales', 'Field Sales',
-      'Channel Sales', 'Partner Management', 'Ventas Retail'
+    'Ciencia e Investigación': [
+      'Biología o química',
+      'Física o matemáticas aplicadas',
+      'Investigación científica',
+      'Medio ambiente o sostenibilidad',
+      'Medicina',
+      'Psicología',
+      'Medioambiente',
+      'Matemáticas'
     ],
-    'Otros': [
-      'Recursos Humanos', 'Talent Acquisition', 'Cultura Organizacional',
-      'Legal', 'Compliance', 'Contratos', 'Propiedad Intelectual',
-      'Finanzas', 'Contabilidad', 'Fiscal', 'Tesorería',
-      'Sostenibilidad', 'ESG', 'Impacto Social', 'Economía Circular',
-      'Educación', 'Formación', 'Coaching', 'Mentoría'
+    'Salud y Bienestar': [
+      'Medicina o enfermería',
+      'Psicología o salud mental',
+      'Deporte y nutrición',
+      'Cuidado de las personas'
+    ],
+    'Arte y Cultura': [
+      'Música, teatro o danza',
+      'Pintura, dibujo o fotografía',
+      'Cine y producción audiovisual',
+      'Literatura o escritura creativa',
+      'Diseño',
+      'Fotografía',
+      'Música',
+      'Oratoria'
+    ],
+    'Sociedad y Humanidades': [
+      'Educación o pedagogía',
+      'Historia o filosofía',
+      'Trabajo social o voluntariado',
+      'Política o derechos humanos',
+      'Filosofía',
+      'Historia',
+      'Derecho',
+      'Política',
+      'Voluntariado'
+    ],
+    'Lifestyle': [
+      'Turismo y gastronomía',
+      'Moda o diseño',
+      'Arquitectura o construcción',
+      'Viajes',
+      'Deportes',
+      'Videojuegos',
+      'Literatura',
+      'Moda'
     ]
   }
 
-  // BUSCANDO (más específico)
+  // ¿QUÉ BUSCAS? - PERFIL ESPECÍFICO
   const seekingCategories = {
-    'Inversión': [
-      'Inversor seed (50k-500k)', 'Inversor Serie A (1M-5M)', 'Business Angel',
-      'Family Office', 'Venture Capital', 'Corporate Venture',
-      'Crowdfunding', 'Grants', 'Subvenciones'
+    'Perfil Profesional': [
+      'Informático',
+      'Estudios en marketing o comunicación',
+      'Estudios en derecho',
+      'Diseñador'
     ],
-    'Cofundadores': [
-      'Cofundador técnico (CTO)', 'Cofundador negocio (CEO)', 'Cofundador producto (CPO)',
-      'Cofundador marketing (CMO)', 'Cofundador ventas', 'Cofundador operaciones (COO)'
-    ],
-    'Equipo': [
-      'Desarrollador Full Stack', 'Desarrollador Frontend', 'Desarrollador Backend',
-      'Desarrollador Mobile', 'DevOps Engineer', 'Data Scientist',
-      'Diseñador UI/UX', 'Product Designer', 'Graphic Designer',
-      'Product Manager', 'Project Manager', 'Scrum Master',
-      'Marketing Manager', 'Growth Hacker', 'Community Manager',
-      'Sales Manager', 'Business Developer', 'Customer Success'
-    ],
-    'Mentoría': [
-      'Mentor en producto', 'Mentor en tecnología', 'Mentor en ventas',
-      'Mentor en marketing', 'Mentor en fundraising', 'Mentor en operaciones',
-      'Mentor en legal', 'Mentor en finanzas', 'Advisor estratégico'
-    ],
-    'Clientes/Partners': [
-      'Primeros clientes', 'Beta testers', 'Early adopters',
-      'Partner estratégico', 'Partner tecnológico', 'Partner comercial',
-      'Distribuidor', 'Reseller', 'Integrador'
-    ],
-    'Otros': [
-      'Freelancer', 'Consultor', 'Proveedor de servicios',
-      'Contactos en industria específica', 'Introducción a inversores',
-      'Introducción a clientes', 'Espacio de coworking', 'Aceleradora'
+    'Habilidades': [
+      'Liderazgo',
+      'Habilidades comunicativas',
+      'Resolución de problemas',
+      'Proactividad',
+      'Analítico',
+      'Creativo'
     ]
   }
 
-  // OFRECIENDO (más específico)
+  // ¿QUÉ OFRECES? - PERFIL ESPECÍFICO
   const offeringCategories = {
-    'Capital': [
-      'Capital seed (50k-500k)', 'Capital Serie A (1M+)', 'Inversión angel',
-      'Préstamo', 'Equity', 'Convertible note', 'SAFE'
+    'Perfil Profesional': [
+      'Informático',
+      'Estudios en marketing o comunicación',
+      'Estudios en derecho',
+      'Diseñador'
     ],
-    'Experiencia': [
-      'Experiencia técnica', 'Experiencia en producto', 'Experiencia en ventas',
-      'Experiencia en marketing', 'Experiencia en operaciones',
-      'Experiencia en fundraising', 'Experiencia en scaling',
-      'Experiencia en exits', 'Experiencia internacional'
-    ],
-    'Recursos': [
-      'Red de contactos', 'Network de inversores', 'Network de clientes',
-      'Mentoría', 'Coaching', 'Formación', 'Consultoría',
-      'Espacio de oficina', 'Infraestructura', 'Herramientas'
-    ],
-    'Equipo/Producto': [
-      'Equipo técnico completo', 'Equipo de desarrollo', 'Equipo de diseño',
-      'Prototipo funcional', 'MVP validado', 'Producto en producción',
-      'Tracción (usuarios)', 'Tracción (ingresos)', 'Clientes pagando'
-    ],
-    'Skills': [
-      'Desarrollo Full Stack', 'Desarrollo Mobile', 'Diseño UI/UX',
-      'Product Management', 'Marketing Digital', 'Growth Hacking',
-      'Ventas B2B', 'Ventas B2C', 'Business Development',
-      'Data Science', 'Machine Learning', 'DevOps'
-    ],
-    'Conocimiento': [
-      'Conocimiento del mercado', 'Conocimiento de la industria',
-      'Conocimiento técnico', 'Conocimiento regulatorio',
-      'Conocimiento de competidores', 'Tendencias del sector'
+    'Habilidades': [
+      'Liderazgo',
+      'Habilidades comunicativas',
+      'Resolución de problemas',
+      'Proactividad',
+      'Analítico',
+      'Creativo'
     ]
   }
 

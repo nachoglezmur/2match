@@ -14,9 +14,20 @@ export default function MatchesFeed({ matches, currentIndex, onMatch, onSkip, on
             <ul>
               {confirmedMatches.map(match => (
                 <li key={match.other_participant}>
-                  <strong>{match.other_name}</strong>
-                  {match.other_company && ` · ${match.other_company}`}
-                  {match.other_phone && <span className="confirmed-phone"> · {match.other_phone}</span>}
+                  <div className="confirmed-match-info">
+                    <strong>{match.other_name}</strong>
+                    {match.other_company && <span className="match-company-small"> · {match.other_company}</span>}
+                  </div>
+                  {match.other_phone && (
+                    <a 
+                      href={`https://wa.me/${match.other_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`👋 Hola ${match.other_name}! Te he visto en 2Match y me gustaría conectar contigo.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-whatsapp-small"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

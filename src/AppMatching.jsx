@@ -369,11 +369,21 @@ function AppMatching() {
           {user ? (
             <>
               <img src={user.picture} alt={user.name} className="user-picture" />
-              <span>{user.name}</span>
-              <a href="https://backend-7g2c.onrender.com/api/logout" className="btn-secondary">Logout</a>
+              <span className="user-name">{user.name}</span>
+              <a href="https://backend-7g2c.onrender.com/api/logout" className="btn-logout">
+                <span>🚪</span> Cerrar sesión
+              </a>
             </>
           ) : (
-            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-primary">Login with Google</a>
+            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-login">
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+              </svg>
+              Iniciar sesión con Google
+            </a>
           )}
         </div>
       </header>
@@ -576,9 +586,32 @@ function AppMatching() {
             <p>Conecta con la persona adecuada en segundos.</p>
           </div>
           <div className="welcome-message">
-            <h2>Bienvenido a 2Match</h2>
-            <p>Inicia sesión para empezar a conectar.</p>
-            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-primary">Login with Google</a>
+            <h2>👋 Bienvenido a 2Match</h2>
+            <p className="welcome-subtitle">La plataforma profesional para conectar con las personas adecuadas</p>
+            <div className="login-features">
+              <div className="login-feature">
+                <span className="feature-icon">✅</span>
+                <span>Matching inteligente</span>
+              </div>
+              <div className="login-feature">
+                <span className="feature-icon">🔒</span>
+                <span>Seguro y privado</span>
+              </div>
+              <div className="login-feature">
+                <span className="feature-icon">⚡</span>
+                <span>Rápido y fácil</span>
+              </div>
+            </div>
+            <a href="https://backend-7g2c.onrender.com/api/login/google" className="btn-login-large">
+              <svg width="24" height="24" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+              </svg>
+              Iniciar sesión con Google
+            </a>
+            <p className="login-disclaimer">Al iniciar sesión, aceptas nuestros términos y política de privacidad</p>
           </div>
         </div>
       )}
@@ -598,9 +631,14 @@ function AppMatching() {
                 </a>
               )}
               {contactInfo.phone && (
-                <a href={`tel:${contactInfo.phone}`} className="contact-pill">
-                  <span className="pill-icon">📱</span>
-                  <span>{contactInfo.phone}</span>
+                <a 
+                  href={`https://wa.me/${contactInfo.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`👋 Hola ${contactInfo.name}! Te he visto en 2Match y me gustaría conectar contigo.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="contact-pill contact-whatsapp"
+                >
+                  <span className="pill-icon">💬</span>
+                  <span>Enviar WhatsApp</span>
                 </a>
               )}
             </div>

@@ -4,7 +4,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List
 from uuid import UUID
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from sqlalchemy.exc import IntegrityError
 
 from .app import db
@@ -165,7 +165,7 @@ def record_match_decision() -> Any:
     if action is None:
         action = MatchAction(
             event_id=event_uuid,
-            initiator_id=initiator_id,
+            initiator_id=initiator.id,
             target_id=target_id,
         )
         db.session.add(action)
@@ -187,9 +187,9 @@ def record_match_decision() -> Any:
         response_data["contact"] = contact
 
         reverse = MatchAction.query.filter_by(
-            event_id=payload.event_id,
-            initiator_id=payload.target_id,
-            target_id=payload.initiator_id,
+            event_id=event_uuid,
+            initiator_id=target_id,
+            target_id=initiator.id,
             action="match",
         ).first()
         if reverse:

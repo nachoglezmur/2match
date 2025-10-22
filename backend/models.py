@@ -1,13 +1,14 @@
+# backend/models.py
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .app import db
+from .extensions import db  # ← CAMBIO IMPORTANTE: de .app a .extensions
 
 
 def _uuid() -> str:
@@ -61,10 +62,14 @@ class User(BaseModel):
 class Participant(BaseModel):
     __tablename__ = "participants"
 
-    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), db.ForeignKey("users.id"))
-    user: Mapped["User" | None] = relationship(back_populates="participants")
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), db.ForeignKey("users.id")
+    )
+    user: Mapped[Optional["User"]] = relationship(back_populates="participants")  # ← CAMBIO
 
-    event_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), db.ForeignKey("events.id"))
+    event_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), db.ForeignKey("events.id")
+    )
     full_name: Mapped[str] = mapped_column(db.String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(db.String(255))
     phone: Mapped[str | None] = mapped_column(db.String(50))
@@ -78,7 +83,7 @@ class Participant(BaseModel):
     offers: Mapped[list] = mapped_column(db.JSON, default=list)
     needs: Mapped[list] = mapped_column(db.JSON, default=list)
 
-    event: Mapped[Event] = relationship(back_populates="participants")
+    event: Mapped["Event"] = relationship(back_populates="participants")
     initiated_actions: Mapped[List["MatchAction"]] = relationship(
         back_populates="initiator",
         foreign_keys="MatchAction.initiator_id",
@@ -94,17 +99,23 @@ class Participant(BaseModel):
 class MatchAction(BaseModel):
     __tablename__ = "match_actions"
 
-    event_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), db.ForeignKey("events.id"))
-    initiator_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), db.ForeignKey("participants.id"))
-    target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), db.ForeignKey("participants.id"))
+    event_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), db.ForeignKey("events.id")
+    )
+    initiator_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), db.ForeignKey("participants.id")
+    )
+    target_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), db.ForeignKey("participants.id")
+    )
     action: Mapped[str] = mapped_column(db.String(32), nullable=False)
     reason: Mapped[dict | None] = mapped_column(db.JSON, default=dict)
 
-    initiator: Mapped[Participant] = relationship(
+    initiator: Mapped["Participant"] = relationship(
         back_populates="initiated_actions",
         foreign_keys=[initiator_id],
     )
-    target: Mapped[Participant] = relationship(
+    target: Mapped["Participant"] = relationship(
         back_populates="received_actions",
         foreign_keys=[target_id],
     )

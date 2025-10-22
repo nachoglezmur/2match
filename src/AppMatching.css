@@ -1828,4 +1828,157 @@ body {
 
 .welcome-message {
   text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.welcome-message h2 {
+  font-size: 32px;
+  color: var(--gray-900);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.welcome-subtitle {
+  font-size: 18px;
+  color: var(--gray-600);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.login-features {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.login-feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--gray-700);
+}
+
+.login-feature .feature-icon {
+  font-size: 20px;
+}
+
+.btn-login,
+.btn-login-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: white;
+  color: var(--gray-700);
+  border: 2px solid var(--gray-300);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-login-large {
+  padding: 16px 32px;
+  font-size: 18px;
+}
+
+.btn-login:hover,
+.btn-login-large:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: var(--gray-200);
+}
+
+.user-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.login-disclaimer {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.5;
+}
+
+.contact-whatsapp {
+  background: #25D366 !important;
+  color: white !important;
+  border-color: #25D366 !important;
+}
+
+.contact-whatsapp:hover {
+  background: #20BA5A !important;
+  border-color: #20BA5A !important;
+}
+
+.btn-whatsapp-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #25D366;
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-whatsapp-small:hover {
+  background: #20BA5A;
+  transform: translateY(-1px);
+}
+
+.confirmed-matches ul {
+  list-style: none;
+  padding: 0;
+}
+
+.confirmed-matches li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.confirmed-match-info {
+  flex: 1;
+}
+
+.match-company-small {
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: normal;
 }

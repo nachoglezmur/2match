@@ -3,23 +3,23 @@ export default function ModeSelection({ onSelectMode }) {
     {
       id: 'affinity',
       icon: '🤝',
-      title: 'Conocer gente afín',
+      title: 'CONOCER GENTE AFÍN',
       description: 'Conecta con personas que comparten tus intereses y valores',
-      details: 'Te pediremos: tus intereses, tipo de personalidad y preferencias de conversación'
+      details: 'Selecciona tus áreas de interés: Tech, Business, Marketing, Arte, Ciencia, etc.'
     },
     {
       id: 'specific',
       icon: '🎯',
-      title: 'Busco perfiles específicos',
+      title: 'BUSCO PERFIL ESPECÍFICO',
       description: 'Encuentra exactamente lo que buscas y ofrece lo que tienes',
-      details: 'Te pediremos: qué buscas y qué puedes ofrecer'
+      details: 'Define qué buscas y qué ofreces: perfiles profesionales y habilidades específicas'
     },
     {
       id: 'explore',
       icon: '🧭',
-      title: 'Explorar y descubrir',
+      title: 'PERFIL DIVERSO',
       description: 'Déjate sorprender con conexiones inesperadas',
-      details: 'Solo necesitamos 2-3 tags amplios (opcional)'
+      details: 'Explora conexiones diversas basadas en intereses amplios'
     }
   ]
 
