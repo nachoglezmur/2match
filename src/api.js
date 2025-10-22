@@ -7,6 +7,7 @@ export const saveParticipant = async (participantData) => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         ...participantData,
         event_id: '00000000-0000-0000-0000-000000000001',
@@ -26,7 +27,9 @@ export const saveParticipant = async (participantData) => {
 
 export const getMatches = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/me/matches`);
+    const response = await fetch(`${API_BASE_URL}/me/matches`, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       throw new Error('Error al obtener los matches');
@@ -46,6 +49,7 @@ export const recordMatchDecision = async (targetId, action) => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         event_id: '00000000-0000-0000-0000-000000000001',
         target_id: targetId,
@@ -66,7 +70,9 @@ export const recordMatchDecision = async (targetId, action) => {
 
 export const getConfirmedMatches = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/me/confirmed_matches`);
+    const response = await fetch(`${API_BASE_URL}/me/confirmed_matches`, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       throw new Error('Error al obtener los matches confirmados');
@@ -86,7 +92,10 @@ export const searchParticipants = async (term, excludeId) => {
     if (excludeId) params.append('exclude_id', excludeId);
     
     const response = await fetch(
-      `${API_BASE_URL}/events/00000000-0000-0000-0000-000000000001/search?${params}`
+      `${API_BASE_URL}/events/00000000-0000-0000-0000-000000000001/search?${params}`,
+      {
+        credentials: 'include',
+      }
     );
     
     if (!response.ok) {
@@ -102,7 +111,9 @@ export const searchParticipants = async (term, excludeId) => {
 
 export const getMe = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/me`);
+    const response = await fetch(`${API_BASE_URL}/me`, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       return { logged_in: false };
