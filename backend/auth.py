@@ -27,20 +27,16 @@ def init_app(app):
         # Initialize OAuth with the app
         oauth.init_app(app)
         
-        # Configure Google OAuth with explicit configuration
-        google = OAuth(app).register(
+        # Configure Google OAuth
+        google = oauth.register(
             name='google',
             client_id=os.getenv('GOOGLE_CLIENT_ID'),
             client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-            api_base_url='https://www.googleapis.com/',
-            access_token_url='https://oauth2.googleapis.com/token',
-            authorize_url='https://accounts.google.com/o/oauth2/v2/auth',
-            jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
             client_kwargs={
                 'scope': 'openid email profile',
                 'prompt': 'select_account',
             },
-            server_metadata_url=None,  # Disable auto-configuration to use explicit settings
         )
 
         @app.route('/api/login/google')
@@ -103,19 +99,7 @@ def init_app(app):
                 # Exchange the authorization code for tokens
                 try:
                     app.logger.info("Attempting to exchange code for token...")
-                    
-                    # Get the redirect_uri from the environment or generate it
-                    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or url_for('auth_callback', _external=True)
-                    
-                    # Ensure HTTPS in production
-                    if not redirect_uri.startswith('https://') and os.getenv('FLASK_ENV') == 'production':
-                        redirect_uri = redirect_uri.replace('http://', 'https://', 1)
-                    
-                    # Exchange the authorization code for a token
-                    token = google.authorize_access_token(
-                        redirect_uri=redirect_uri,
-                        code=code
-                    )
+                    token = google.authorize_access_token()
                     
                     app.logger.info("Token exchange successful")
                     
@@ -124,35 +108,6 @@ def init_app(app):
                         raise Exception("Failed to obtain access token from Google")
                         
                     app.logger.info(f"OAuth token received: {token}")
-                    
-                    # Verify the token
-                    if 'id_token' in token:
-                        try:
-                            # Get the key to verify the token
-                            from authlib.jose import jwt
-                            from authlib.jose.errors import JoseError
-                            
-                            # Get the JWKS (JSON Web Key Set) from Google
-                            jwks_client = google._get_oauth_client()._get_jwt_issuer_key()
-                            
-                            # Verify the token
-                            claims = jwt.decode(
-                                token['id_token'],
-                                jwks_client,
-                                claims_options={
-                                    'iss': {'essential': True, 'values': ['https://accounts.google.com', 'accounts.google.com']},
-                                    'aud': {'essential': True, 'value': os.getenv('GOOGLE_CLIENT_ID')},
-                                }
-                            )
-                            claims.validate()
-                            app.logger.info("Token validation successful")
-                            
-                        except JoseError as e:
-                            app.logger.error(f"Token validation failed: {str(e)}")
-                            raise Exception(f"Invalid token: {str(e)}")
-                        except Exception as e:
-                            app.logger.error(f"Error validating token: {str(e)}")
-                            raise Exception(f"Token validation error: {str(e)}")
                     
                 except Exception as token_error:
                     app.logger.error(f"Error during token exchange: {str(token_error)}")
