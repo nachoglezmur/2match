@@ -97,3 +97,6 @@ def create_app(config_name: str | None = None) -> Flask:
         from . import models  # noqa: F401
     
     return app
+
+
+app = create_app()
